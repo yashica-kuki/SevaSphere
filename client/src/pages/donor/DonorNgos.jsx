@@ -59,6 +59,15 @@ export default function DonorNgos() {
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {data.map((n) => (
                 <article key={n.id} className="surface-card flex flex-col p-5">
+                  {n.logoUrl && (
+                    <img
+                      src={n.logoUrl}
+                      alt={`${n.name} — illustrative photo`}
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      className="-mx-6 -mt-6 mb-5 h-44 w-[calc(100%+3rem)] max-w-none rounded-t-2xl object-cover"
+                    />
+                  )}
                   <div className="flex items-start justify-between gap-3">
                     <div><h3 className="text-lg font-bold text-forest">{n.name}</h3>
                       <p className="mt-1 flex items-center gap-1 text-xs text-[#64716B]"><MapPin size={13} /> {[n.city, n.state].filter(Boolean).join(", ") || "India"}</p></div>

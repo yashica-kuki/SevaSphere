@@ -87,6 +87,8 @@ export default function NGODetails() {
                     </span>
                   </div>
 
+                  {ngo.logoUrl && <img src={ngo.logoUrl} alt="" className="mb-5 h-44 w-full max-w-md rounded-2xl object-cover" />}
+
                   <h1 className="mt-5 text-3xl font-bold md:text-5xl">
                     {ngo.organizationName}
                   </h1>

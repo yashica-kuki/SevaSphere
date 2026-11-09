@@ -15,7 +15,12 @@ export const updateNGOProfileSchema = z.object({
   state: z.string().trim().max(100).optional().nullable(),
   country: z.string().trim().min(2).max(100),
   minimumDonation: z.number().positive().max(10000000).optional().nullable(),
-  logoUrl: z.string().trim().url().optional().or(z.literal("")).nullable(),
+  logoUrl: z
+  .string()
+  .trim()
+  .refine((v) => v === "" || /^\/images\//.test(v) || /^https?:\/\//.test(v), "Must be an https URL or an /images/ path")
+  .optional()
+  .nullable(),
   galleryUrls: z.array(z.string().trim().url()).max(10).optional(),
 });
 

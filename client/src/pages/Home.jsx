@@ -170,51 +170,34 @@ export default function Home() {
             </div>
 
             <div className="relative">
-              <div className="rounded-[2rem] border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/60">
-                    The SevaSphere approach
-                  </span>
-                  <Sparkles className="text-[#D6AD60]" />
-                </div>
-
-                <h2 className="mt-8 text-3xl font-bold">
-                  One act of kindness.
-                  <br />
-                  Countless possibilities.
-                </h2>
-
-                <p className="mt-4 leading-7 text-white/60">
-                  Technology helps connect generosity with organizations
-                  working on the ground.
-                </p>
-
-                <div className="mt-10 space-y-4">
-                  {[
-                    ["01", "Choose a cause", "Find a mission you care about."],
-                    ["02", "Discover NGOs", "Explore verified organizations."],
-                    ["03", "Create impact", "Follow transparent impact reports."],
-                  ].map(([number, title, description]) => (
-                    <div
-                      key={number}
-                      className="flex items-center gap-4 rounded-xl bg-white/10 p-4"
-                    >
-                      <span className="text-xl font-bold text-[#D6AD60]">
-                        {number}
-                      </span>
-
-                      <div>
-                        <p className="font-semibold">{title}</p>
-                        <p className="text-sm text-white/60">
-                          {description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <img
+                src="/images/hero.jpg"
+                alt="Volunteers helping a community"
+                className="h-[460px] w-full rounded-[2rem] object-cover shadow-2xl"
+                loading="eager"
+              />
+              <div className="absolute -bottom-6 left-6 right-6 rounded-2xl border border-white/20 bg-[#123B32]/90 p-5 backdrop-blur sm:right-auto sm:max-w-sm">
+                <p className="text-sm text-white/60">The SevaKarma approach</p>
+                <p className="mt-1 text-lg font-bold">Choose a cause. Discover verified NGOs. Follow transparent impact.</p>
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-6 pt-20 lg:px-10">
+          <div className="grid gap-5 sm:grid-cols-3">
+            {[
+              ["/images/education.jpg", "Education"],
+              ["/images/food.jpg", "Hunger relief"],
+              ["/images/health.jpg", "Healthcare"],
+            ].map(([src, label]) => (
+              <div key={label} className="group relative overflow-hidden rounded-2xl">
+                <img src={src} alt={`${label} — illustrative photo`} className="h-64 w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 font-semibold text-white">{label}</div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-[#829087]">Photos are illustrative stock images, not beneficiaries of the NGOs listed.</p>
         </section>
 
         {/* IMPACT STATISTICS */}

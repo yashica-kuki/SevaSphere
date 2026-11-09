@@ -235,6 +235,15 @@ export default function NGOs() {
                 className="flex flex-col rounded-2xl border border-[#E6E9E4] bg-white p-6 transition hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="flex items-start justify-between gap-3">
+                  {ngo.logoUrl && (
+                    <img
+                      src={ngo.logoUrl}
+                      alt={`${ngo.organizationName} — illustrative photo`}
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      className="-mx-6 -mt-6 mb-5 h-44 w-[calc(100%+3rem)] max-w-none rounded-t-2xl object-cover"
+                    />
+                  )}
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sage text-forest">
                     <HandHeart size={25} />
                   </div>

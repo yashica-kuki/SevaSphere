@@ -182,6 +182,15 @@ const pendingNgo = {
   state: "Chhattisgarh",
 };
 
+const NGO_IMAGES = {
+  "Demo Seva Foundation": "/images/ngos/demo-seva.jpg",
+  "Udaan Education Trust": "/images/ngos/udaan.jpg",
+  "Swasthya Community Foundation": "/images/ngos/swasthya.jpg",
+  "Green Earth Initiative": "/images/ngos/green-earth.jpg",
+  "Annapurna Food Bank": "/images/ngos/annapurna.jpg",
+  "Paws & Care Society": "/images/ngos/paws.jpg",
+};
+
 const main = async () => {
   // Demo admin account
   const admin = await createUser({
@@ -253,6 +262,7 @@ const main = async () => {
       },
       update: {
         organizationName: ngoData.organizationName,
+        logoUrl: NGO_IMAGES[ngoData.organizationName] ?? null,
         description: ngoData.description,
         mission: ngoData.mission ?? ngoData.description,
         minimumDonationPaise: ngoData.minimumDonationPaise ?? null,
@@ -265,6 +275,7 @@ const main = async () => {
       create: {
         userId: user.id,
         organizationName: ngoData.organizationName,
+        logoUrl: NGO_IMAGES[ngoData.organizationName] ?? null,
         description: ngoData.description,
         mission: ngoData.mission ?? ngoData.description,
         minimumDonationPaise: ngoData.minimumDonationPaise ?? null,
