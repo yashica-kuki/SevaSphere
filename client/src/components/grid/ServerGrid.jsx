@@ -27,6 +27,7 @@ export default function ServerGrid({
   searchPlaceholder = "Search…",
   pageSize = 10,
   height = 520,
+  rowHeight,           // optional fixed row height (px) for grids with wrapped text
   refreshKey = 0,
   onRowClicked,
   emptyMessage = "No records found.",
@@ -157,6 +158,8 @@ export default function ServerGrid({
           defaultColDef={defaultColDef}
           rowModelType="infinite"
           datasource={datasource}
+          rowHeight={rowHeight}
+          tooltipShowDelay={300}
           cacheBlockSize={pageSize}
           pagination
           paginationPageSize={pageSize}
