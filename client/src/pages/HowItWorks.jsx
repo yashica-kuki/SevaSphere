@@ -20,31 +20,31 @@ const donorSteps = [
     icon: UserPlus,
     title: "Create an account",
     description:
-      "Register as a donor and set up your donor profile.",
+      "Register as a donor and top up your simulated wallet to fund donations.",
   },
   {
     icon: Search,
     title: "Explore causes and NGOs",
     description:
-      "Discover verified organizations and choose the causes you care about.",
+      "Browse verified organizations, read their impact reports and save favourites.",
   },
   {
     icon: BrainCircuit,
-    title: "Get AI-assisted recommendations",
+    title: "Set your purpose and limits",
     description:
-      "The matching system recommends suitable NGOs based on your selected preferences and donation policies.",
+      "Pick your causes and set a monthly budget, a per-NGO cap and the maximum number of NGOs. Then authorize the SevaSphere Agent to act within those limits.",
   },
   {
     icon: Wallet,
-    title: "Contribute securely",
+    title: "Let the agent donate",
     description:
-      "Make a donation through the supported payment flow and track its transaction status.",
+      "Describe what you want in plain words, preview the split, and confirm. Or schedule a recurring donation that the agent runs for you.",
   },
   {
     icon: FileText,
     title: "Follow your impact",
     description:
-      "Explore donation allocations and impact reports submitted by organizations.",
+      "See exactly which NGOs received what, read the agent's explanation, and review impact reports with evidence.",
   },
 ];
 
@@ -81,6 +81,58 @@ const ngoSteps = [
   },
 ];
 
+const agentSteps = [
+  {
+    icon: BrainCircuit,
+    ai: true,
+    title: "Understand the request",
+    description:
+      "Gemini turns your free-text intent into causes from the platform's real list. It can never go wider than the causes you authorized.",
+  },
+  {
+    icon: Search,
+    ai: false,
+    title: "Find candidate NGOs",
+    description:
+      "Loads only verified, active NGOs from the database along with their causes and impact-report history.",
+  },
+  {
+    icon: CheckCircle2,
+    ai: true,
+    title: "Check eligibility and score",
+    description:
+      "Rules score each NGO on cause fit (40), your preferences (25), impact reporting (20) and capacity (15). AI only writes the reason text.",
+  },
+  {
+    icon: ShieldCheck,
+    ai: false,
+    title: "Allocate the funds",
+    description:
+      "A deterministic engine splits the amount by score, respecting per-NGO caps, minimum donations and the maximum number of NGOs.",
+  },
+  {
+    icon: ShieldCheck,
+    ai: false,
+    title: "Validate authorization",
+    description:
+      "Confirms your authorization is active, the budget limits hold, the wallet has funds and every NGO is still eligible.",
+  },
+  {
+    icon: Wallet,
+    ai: false,
+    title: "Execute the donation",
+    description:
+      "One locked database transaction moves the money and records the ledger. Retries cannot double-charge because of idempotency keys.",
+  },
+  {
+    icon: FileText,
+    ai: true,
+    title: "Explain the outcome",
+    description:
+      "Gemini summarises what actually happened using only the committed facts, with a plain template if AI is unavailable.",
+  },
+];
+
 export default function HowItWorks() {
   return (
     <div className="min-h-screen bg-ivory">
@@ -98,7 +150,7 @@ export default function HowItWorks() {
 
           <p className="mt-5 max-w-2xl leading-8 text-white/75">
             From discovering a cause to tracking its impact, here's how
-            donors, NGOs and responsible AI work together.
+            donors, NGOs and the SevaSphere Agent work together.
           </p>
         </div>
       </section>
@@ -203,54 +255,57 @@ export default function HowItWorks() {
             </div>
 
             <p className="mt-6 text-sm font-semibold uppercase tracking-wider text-forest">
-              Responsible AI allocation
+              The SevaSphere Agent
             </p>
 
             <h2 className="mt-3 text-3xl font-bold text-charcoal">
-              How AI-assisted matching works
+              How the AI agent works
             </h2>
 
             <p className="mt-4 leading-8 text-charcoal/70">
-              SevaSphere uses AI to help identify organizations that
-              align with donor preferences. However, AI does not directly
-              move money or execute financial transactions.
+              The agent runs as a seven-step workflow. AI is used only to
+              understand your request and to explain the result. The decisions
+              that involve money, such as who is eligible, how much each NGO
+              gets and whether the donation may proceed, are made by fixed,
+              testable rules.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
-            <div className="rounded-2xl bg-white p-6">
-              <Search className="text-forest" size={25} />
-              <h3 className="mt-4 font-bold text-charcoal">
-                1. Discover matches
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-charcoal/65">
-                AI evaluates relevant NGO information and recommends
-                suitable organizations.
-              </p>
-            </div>
+          <ol className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {agentSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <li key={step.title} className="rounded-2xl bg-white p-6">
+                  <div className="flex items-center justify-between">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest text-sm font-bold text-white">
+                      {index + 1}
+                    </span>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        step.ai
+                          ? "bg-gold/25 text-forest"
+                          : "bg-sage text-forest"
+                      }`}
+                    >
+                      {step.ai ? "AI-assisted" : "Rule-based"}
+                    </span>
+                  </div>
+                  <Icon className="mt-4 text-forest" size={25} />
+                  <h3 className="mt-3 font-bold text-charcoal">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-charcoal/65">
+                    {step.description}
+                  </p>
+                </li>
+              );
+            })}
+          </ol>
 
-            <div className="rounded-2xl bg-white p-6">
-              <ShieldCheck className="text-forest" size={25} />
-              <h3 className="mt-4 font-bold text-charcoal">
-                2. Apply donor policies
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-charcoal/65">
-                Deterministic allocation rules enforce donor preferences,
-                eligibility and allocation limits.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white p-6">
-              <Wallet className="text-forest" size={25} />
-              <h3 className="mt-4 font-bold text-charcoal">
-                3. Process and track
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-charcoal/65">
-                The authorized payment and allocation workflow records
-                transactions and their outcomes.
-              </p>
-            </div>
-          </div>
+          <p className="mt-8 max-w-3xl text-sm leading-7 text-charcoal/70">
+            Every step is logged with its input, output and timing. A preview
+            runs the same workflow but stops before any money moves. If a
+            check fails, the agent stops and tells you the exact reason, and
+            no donation is made.
+          </p>
         </section>
 
         <section className="mt-16 rounded-3xl bg-forest px-8 py-14 text-center text-white">

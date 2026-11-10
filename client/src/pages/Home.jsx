@@ -14,6 +14,10 @@ import {
   PawPrint,
   LoaderCircle,
   MapPin,
+  Search,
+  BrainCircuit,
+  Wallet,
+  FileText,
 } from "lucide-react";
 
 import Navbar from "../components/layout/Navbar.jsx";
@@ -177,7 +181,7 @@ export default function Home() {
                 loading="eager"
               />
               <div className="absolute -bottom-6 left-6 right-6 rounded-2xl border border-white/20 bg-[#123B32]/90 p-5 backdrop-blur sm:right-auto sm:max-w-sm">
-                <p className="text-sm text-white/60">The SevaKarma approach</p>
+                <p className="text-sm text-white/60">The SevaSphere approach</p>
                 <p className="mt-1 text-lg font-bold">Choose a cause. Discover verified NGOs. Follow transparent impact.</p>
               </div>
             </div>
@@ -384,47 +388,82 @@ export default function Home() {
             <SectionTitle
               eyebrow="Simple. Transparent. Meaningful."
               title="How SevaSphere works."
-              description="A straightforward journey from your intention to make a difference to understanding the impact."
+              description="Tell the SevaSphere Agent what you care about once. It finds the right verified NGOs, splits your donation by clear rules, and only acts inside limits you authorize."
             />
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               {[
                 {
                   number: "01",
-                  title: "Discover",
+                  icon: Search,
+                  title: "Set your purpose",
                   description:
-                    "Explore causes and verified NGOs that align with your interests.",
+                    "Choose the causes you care about, or describe your intent in plain words. Set your limits: monthly budget, per-NGO cap and number of NGOs.",
                 },
                 {
                   number: "02",
-                  title: "Donate",
+                  icon: BrainCircuit,
+                  title: "The Agent finds matches",
                   description:
-                    "Make a contribution and define how your donation should be allocated.",
+                    "The AI agent reads your request and looks across verified, active NGOs. Each NGO is scored on cause fit, your preferences, impact reporting and capacity.",
                 },
                 {
                   number: "03",
-                  title: "Track impact",
+                  icon: ShieldCheck,
+                  title: "Rules split the funds",
                   description:
-                    "Follow allocations and impact reports to understand where your support goes.",
+                    "A deterministic allocation engine, not the AI, decides who is eligible and how much each NGO receives. You preview the split before anything moves.",
                 },
-              ].map((item) => (
-                <div
-                  key={item.number}
-                  className="rounded-2xl bg-white p-8"
-                >
-                  <p className="text-4xl font-extrabold text-[#D6AD60]">
-                    {item.number}
-                  </p>
+                {
+                  number: "04",
+                  icon: Wallet,
+                  title: "Authorize and donate",
+                  description:
+                    "Nothing happens without your authorization. The agent validates your limits and wallet, then donates once or on a schedule. Revoke any time.",
+                },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.number} className="rounded-2xl bg-white p-8">
+                    <div className="flex items-center justify-between">
+                      <p className="text-4xl font-extrabold text-[#D6AD60]">
+                        {item.number}
+                      </p>
+                      <Icon className="text-[#123B32]" size={26} />
+                    </div>
 
-                  <h3 className="mt-5 text-xl font-bold text-[#123B32]">
-                    {item.title}
-                  </h3>
+                    <h3 className="mt-5 text-xl font-bold text-[#123B32]">
+                      {item.title}
+                    </h3>
 
-                  <p className="mt-3 leading-7 text-gray-600">
-                    {item.description}
-                  </p>
-                </div>
-              ))}
+                    <p className="mt-3 leading-7 text-gray-600">
+                      {item.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-4 rounded-2xl bg-white p-8 md:flex-row md:items-center">
+              <div className="inline-flex shrink-0 rounded-xl bg-[#E5EEE8] p-3">
+                <FileText className="text-[#123B32]" size={26} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-[#123B32]">
+                  05 · Understand the outcome
+                </h3>
+                <p className="mt-2 leading-7 text-gray-600">
+                  The agent explains what it did in plain language, based only
+                  on the committed facts. Every step is recorded, and you can
+                  follow your donations and the impact reports NGOs publish.
+                </p>
+              </div>
+              <Link
+                to="/how-it-works"
+                className="inline-flex shrink-0 items-center gap-2 font-semibold text-[#123B32] hover:text-[#B18A45]"
+              >
+                See the full workflow <ArrowRight size={16} />
+              </Link>
             </div>
           </div>
         </section>
