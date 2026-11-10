@@ -84,16 +84,40 @@ export const captureOrder = asyncHandler(async (req, res) => {
 
   // Verify what PayPal says against what we stored — never trust the browser.
   const cap = paypal.extractCapture(order);
-  const ok = order.id === tx.providerOrderId && order.status === "COMPLETED" && cap?.status === "COMPLETED" &&
-    cap.currency === tx.currency && Number(cap.value).toFixed(2) === Number(tx.amount).toFixed(2);
+  const matches = order.id === tx.providerOrderId && cap && cap.currency === tx.currency &&
+    Number(cap.value).toFixed(2) === Number(tx.amount).toFixed(2);
+  const diagnostics = { paypalOrderStatus: order.status, captureStatus: cap?.status ?? null, pendingReason: cap?.reason ?? null, captureCurrency: cap?.currency ?? null, captureValue: cap?.value ?? null };
+
+  // Money is verified but PayPal is holding it (common in sandbox when the merchant account must manually accept USD).
+  if (matches && order.status === "COMPLETED" && cap.status === "PENDING") {
+    const held = await prisma.paymentTransaction.update({
+      where: { id: tx.id },
+      data: { providerPaymentId: cap.id, metadata: { ...tx.metadata, outcome: "CAPTURE_PENDING", ...diagnostics } },
+    });
+    await audit({ actorId: req.user.id, action: "PAYPAL_CAPTURE_PENDING", entity: "PaymentTransaction", entityId: tx.id, metadata: diagnostics, req });
+    return res.json({
+      success: true,
+      pending: true,
+      message: `PayPal accepted the payment but is holding it as pending${cap.reason ? ` (${cap.reason})` : ""}. In the sandbox, log in to your Business sandbox account and accept it, (Sandbox → Accounts → your Business account → PayPal login → Activity). The payment stays listed as Pending here.`,
+      data: toData(held),
+    });
+  }
+
+  const ok = matches && order.status === "COMPLETED" && cap.status === "COMPLETED";
   const updated = await prisma.paymentTransaction.update({
     where: { id: tx.id },
     data: ok
-      ? { status: "SUCCESS", providerPaymentId: cap.id, metadata: { ...tx.metadata, outcome: "CAPTURED", capturedAt: new Date().toISOString() } }
-      : { status: "FAILED", metadata: { ...tx.metadata, outcome: "VERIFICATION_FAILED", paypalStatus: order.status } },
+      ? { status: "SUCCESS", providerPaymentId: cap.id, metadata: { ...tx.metadata, outcome: "CAPTURED", capturedAt: new Date().toISOString(), ...diagnostics } }
+      : { status: "FAILED", metadata: { ...tx.metadata, outcome: "VERIFICATION_FAILED", ...diagnostics } },
   });
-  await audit({ actorId: req.user.id, action: ok ? "PAYPAL_CAPTURED" : "PAYPAL_VERIFICATION_FAILED", entity: "PaymentTransaction", entityId: tx.id, req });
-  if (!ok) return res.status(409).json({ success: false, message: "PayPal capture could not be verified", data: toData(updated) });
+  await audit({ actorId: req.user.id, action: ok ? "PAYPAL_CAPTURED" : "PAYPAL_VERIFICATION_FAILED", entity: "PaymentTransaction", entityId: tx.id, metadata: ok ? undefined : diagnostics, req });
+  if (!ok) {
+    return res.status(409).json({
+      success: false,
+      message: `PayPal capture could not be verified (order ${order.status}, capture ${cap?.status ?? "none"}${cap?.currency ? `, ${cap.currency} ${cap.value}` : ""}).`,
+      data: toData(updated),
+    });
+  }
   res.json({ success: true, message: "Sandbox payment captured", data: toData(updated) });
 });
 

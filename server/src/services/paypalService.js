@@ -72,6 +72,6 @@ export const getOrder = (orderId) => call(`/v2/checkout/orders/${encodeURICompon
 export const extractCapture = (order) => {
   const capture = order?.purchase_units?.[0]?.payments?.captures?.[0];
   return capture
-    ? { id: capture.id, status: capture.status, value: capture.amount?.value, currency: capture.amount?.currency_code }
+    ? { id: capture.id, status: capture.status, reason: capture.status_details?.reason ?? null, value: capture.amount?.value, currency: capture.amount?.currency_code }
     : null;
 };

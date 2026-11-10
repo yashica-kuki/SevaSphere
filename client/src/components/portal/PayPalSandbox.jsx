@@ -48,7 +48,9 @@ export default function PayPalSandbox() {
           onApprove: async (data) => {
             try {
               const r = await send("post", "/donor/paypal/capture-order", { orderId: data.orderID });
-              setStatus({ tone: "success", text: `Sandbox payment captured (${r.data.currency} ${r.data.amount}). Transaction ${r.data.captureId}.` });
+              setStatus(r.pending
+                ? { tone: "warn", text: r.message }
+                : { tone: "success", text: `Sandbox payment captured (${r.data.currency} ${r.data.amount}). Transaction ${r.data.captureId}.` });
             } catch (e) {
               setStatus({ tone: "error", text: `Payment failed: ${e.message}` });
             }
