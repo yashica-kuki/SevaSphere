@@ -518,7 +518,7 @@ describe("Admin portal", () => {
 });
 
 /* ============================== PAYPAL ============================== */
-describe("PayPal Sandbox (USD, separate from INR wallet) — against a local PayPal mock", () => {
+describe("PayPal Sandbox (USD, converted into the INR wallet) — against a local PayPal mock", () => {
   let d;
   before(async () => { d = await registerDonor(); });
   const create = (amountUsd, k = key()) => d.c.post("/api/donor/paypal/create-order", { amountUsd, idempotencyKey: k });
@@ -540,7 +540,8 @@ describe("PayPal Sandbox (USD, separate from INR wallet) — against a local Pay
     const again = await d.c.post("/api/donor/paypal/capture-order", { orderId: o.body.data.orderId });
     assert.equal(again.status, 200); assert.equal(again.body.duplicate, true);
     assert.equal(await prisma.paymentTransaction.count({ where: { providerOrderId: o.body.data.orderId } }), 1);
-    assert.equal((await wallet(d.c)).total.paise, "0", "PayPal must not touch the INR wallet");
+    // $10.00 at the fixed demo rate of ₹83/USD = ₹830 = 83000 paise, credited exactly once (repeat capture did not double-credit)
+    assert.equal((await wallet(d.c)).total.paise, "83000", "verified PayPal capture credits the INR wallet once");
   });
 
   test("cancellation, declined payment and tampered capture are handled", async () => {

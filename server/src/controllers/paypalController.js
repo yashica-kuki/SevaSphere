@@ -4,6 +4,38 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { HttpError, badRequest, notFound } from "../utils/httpError.js";
 import { audit } from "../services/auditService.js";
 import * as paypal from "../services/paypalService.js";
+import { topUp, getDonorContext } from "../services/walletService.js";
+
+// Fixed demo conversion: 1 USD = PAYPAL_USD_INR_RATE rupees (default 83). Integer maths only, no floats for money.
+const rateHundredths = () => {
+  const raw = String(process.env.PAYPAL_USD_INR_RATE ?? "83").trim();
+  if (!/^\d{1,4}(\.\d{1,2})?$/.test(raw) || Number(raw) <= 0) return 8300n;
+  const [whole, frac = ""] = raw.split(".");
+  return BigInt(whole) * 100n + BigInt(frac.padEnd(2, "0"));
+};
+const usdToPaise = (usdString) => {
+  const [whole, frac = ""] = String(usdString).split(".");
+  const cents = BigInt(whole) * 100n + BigInt(frac.padEnd(2, "0").slice(0, 2));
+  return (cents * rateHundredths()) / 100n; // 1 cent = rate paise
+};
+
+/** Credit the INR wallet for a verified, captured PayPal payment. Idempotent: safe to call again for the same transaction. */
+const creditWalletForPayment = async (req, tx) => {
+  const donor = await getDonorContext(req.user.id);
+  const amountPaise = usdToPaise(tx.amount.toString());
+  const rate = Number(rateHundredths()) / 100;
+  const result = await topUp({
+    walletId: donor.walletAccount.id,
+    amountPaise,
+    idempotencyKey: `paypal-${tx.id}`,
+    description: `PayPal Sandbox top-up (USD ${tx.amount.toString()} @ ₹${rate}/USD)`,
+  });
+  if (!result.duplicate) {
+    await audit({ actorId: req.user.id, action: "WALLET_TOPUP_PAYPAL_SANDBOX", entity: "WalletLedger", entityId: result.entry.id,
+      metadata: { paymentTransactionId: tx.id, usd: tx.amount.toString(), amountPaise: amountPaise.toString(), rate }, req });
+  }
+  return { amountPaise, rate };
+};
 
 const toData = (t) => ({
   id: t.id, orderId: t.providerOrderId, captureId: t.providerPaymentId, amount: t.amount.toString(), currency: t.currency,
@@ -19,7 +51,7 @@ export const getConfig = asyncHandler(async (req, res) => {
       clientId: paypal.paypalConfigured() ? process.env.PAYPAL_CLIENT_ID : null, // public client id, safe for the browser
       currency: paypal.PAYPAL_CURRENCY,
       mode: "sandbox",
-      notice: "PayPal runs in Sandbox mode with USD. It is separate from the simulated INR wallet and nothing is converted.",
+      notice: `PayPal runs in Sandbox mode with USD. A successful payment is converted at a fixed demo rate (1 USD = ₹${Number(rateHundredths()) / 100}) and added to your simulated INR wallet.`,
     },
   });
 });
@@ -67,7 +99,10 @@ export const captureOrder = asyncHandler(async (req, res) => {
   const { orderId } = orderSchema.parse(req.body);
   const tx = await ownTx(req, orderId);
   // Repeated capture requests are safe: return the stored result.
-  if (tx.status === "SUCCESS") return res.json({ success: true, duplicate: true, data: toData(tx) });
+  if (tx.status === "SUCCESS") {
+    const credit = await creditWalletForPayment(req, tx); // idempotent: heals a crash between capture and credit
+    return res.json({ success: true, duplicate: true, data: { ...toData(tx), walletCreditedInr: (Number(credit.amountPaise) / 100).toFixed(2), rate: credit.rate } });
+  }
   if (tx.status !== "PENDING") throw new HttpError(409, `This payment is already ${tx.status.toLowerCase()}`);
 
   let order;
@@ -84,41 +119,22 @@ export const captureOrder = asyncHandler(async (req, res) => {
 
   // Verify what PayPal says against what we stored — never trust the browser.
   const cap = paypal.extractCapture(order);
-  const matches = order.id === tx.providerOrderId && cap && cap.currency === tx.currency &&
-    Number(cap.value).toFixed(2) === Number(tx.amount).toFixed(2);
-  const diagnostics = { paypalOrderStatus: order.status, captureStatus: cap?.status ?? null, pendingReason: cap?.reason ?? null, captureCurrency: cap?.currency ?? null, captureValue: cap?.value ?? null };
-
-  // Money is verified but PayPal is holding it (common in sandbox when the merchant account must manually accept USD).
-  if (matches && order.status === "COMPLETED" && cap.status === "PENDING") {
-    const held = await prisma.paymentTransaction.update({
-      where: { id: tx.id },
-      data: { providerPaymentId: cap.id, metadata: { ...tx.metadata, outcome: "CAPTURE_PENDING", ...diagnostics } },
-    });
-    await audit({ actorId: req.user.id, action: "PAYPAL_CAPTURE_PENDING", entity: "PaymentTransaction", entityId: tx.id, metadata: diagnostics, req });
-    return res.json({
-      success: true,
-      pending: true,
-      message: `PayPal accepted the payment but is holding it as pending${cap.reason ? ` (${cap.reason})` : ""}. In the sandbox, log in to your Business sandbox account and accept it, (Sandbox → Accounts → your Business account → PayPal login → Activity). The payment stays listed as Pending here.`,
-      data: toData(held),
-    });
-  }
-
-  const ok = matches && order.status === "COMPLETED" && cap.status === "COMPLETED";
+  const ok = order.id === tx.providerOrderId && order.status === "COMPLETED" && cap?.status === "COMPLETED" &&
+    cap.currency === tx.currency && Number(cap.value).toFixed(2) === Number(tx.amount).toFixed(2);
   const updated = await prisma.paymentTransaction.update({
     where: { id: tx.id },
     data: ok
-      ? { status: "SUCCESS", providerPaymentId: cap.id, metadata: { ...tx.metadata, outcome: "CAPTURED", capturedAt: new Date().toISOString(), ...diagnostics } }
-      : { status: "FAILED", metadata: { ...tx.metadata, outcome: "VERIFICATION_FAILED", ...diagnostics } },
+      ? { status: "SUCCESS", providerPaymentId: cap.id, metadata: { ...tx.metadata, outcome: "CAPTURED", capturedAt: new Date().toISOString() } }
+      : { status: "FAILED", metadata: { ...tx.metadata, outcome: "VERIFICATION_FAILED", paypalStatus: order.status } },
   });
-  await audit({ actorId: req.user.id, action: ok ? "PAYPAL_CAPTURED" : "PAYPAL_VERIFICATION_FAILED", entity: "PaymentTransaction", entityId: tx.id, metadata: ok ? undefined : diagnostics, req });
-  if (!ok) {
-    return res.status(409).json({
-      success: false,
-      message: `PayPal capture could not be verified (order ${order.status}, capture ${cap?.status ?? "none"}${cap?.currency ? `, ${cap.currency} ${cap.value}` : ""}).`,
-      data: toData(updated),
-    });
-  }
-  res.json({ success: true, message: "Sandbox payment captured", data: toData(updated) });
+  await audit({ actorId: req.user.id, action: ok ? "PAYPAL_CAPTURED" : "PAYPAL_VERIFICATION_FAILED", entity: "PaymentTransaction", entityId: tx.id, req });
+  if (!ok) return res.status(409).json({ success: false, message: "PayPal capture could not be verified", data: toData(updated) });
+  const credit = await creditWalletForPayment(req, updated);
+  res.json({
+    success: true,
+    message: "Sandbox payment captured and added to your wallet",
+    data: { ...toData(updated), walletCreditedInr: (Number(credit.amountPaise) / 100).toFixed(2), rate: credit.rate },
+  });
 });
 
 export const cancelOrder = asyncHandler(async (req, res) => {

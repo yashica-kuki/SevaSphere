@@ -48,9 +48,9 @@ export default function PayPalSandbox() {
           onApprove: async (data) => {
             try {
               const r = await send("post", "/donor/paypal/capture-order", { orderId: data.orderID });
-              setStatus(r.pending
-                ? { tone: "warn", text: r.message }
-                : { tone: "success", text: `Sandbox payment captured (${r.data.currency} ${r.data.amount}). Transaction ${r.data.captureId}.` });
+              setStatus({ tone: "success", text: `Payment captured (${r.data.currency} ${r.data.amount}). ₹${r.data.walletCreditedInr} was added to your wallet. Transaction ${r.data.captureId}.` });
+              qc.invalidateQueries({ queryKey: ["donor-wallet"] });
+              qc.invalidateQueries({ queryKey: ["donor-dashboard"] });
             } catch (e) {
               setStatus({ tone: "error", text: `Payment failed: ${e.message}` });
             }
@@ -73,8 +73,8 @@ export default function PayPalSandbox() {
   }, [cfg.data, qc]);
 
   return (
-    <Section title="PayPal Sandbox donation (USD)" description="A separate test payment in US dollars.">
-      <Notice tone="sandbox" className="mb-4"><b>Sandbox mode.</b> {cfg.data?.notice ?? "PayPal runs in Sandbox with USD. It is separate from your simulated INR wallet and nothing is converted."} Use a PayPal sandbox buyer account; no real money moves.</Notice>
+    <Section title="PayPal Sandbox donation (USD)" description="Pay in US dollars with PayPal Sandbox. The amount is converted and added to your INR wallet.">
+      <Notice tone="sandbox" className="mb-4"><b>Sandbox mode.</b> {cfg.data?.notice ?? "PayPal runs in Sandbox with USD. It is converted at a fixed demo rate and added to your simulated INR wallet."} Use a PayPal sandbox buyer account; no real money moves.</Notice>
       {cfg.isLoading && <PageLoader />}
       {cfg.isError && <Notice tone="error">{cfg.error.message}</Notice>}
       {cfg.data && !cfg.data.configured && (
