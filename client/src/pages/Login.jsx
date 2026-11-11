@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Heart, Loader2, HandHeart, Building2 } from "lucide-react";
+import { Heart, Loader2, HandHeart, Building2, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/layout/Navbar";
 // import { logoutUser } from "../services/authService";
@@ -38,8 +38,7 @@ export default function Login() {
                 }
 
                 setError(
-                    `This account is registered as ${result.user.role === "DONOR" ? "Donor" : "NGO"
-                    }. Please select the correct account type.`
+                    `This account is registered as ${{ DONOR: "Donor", NGO: "NGO", ADMIN: "Admin" }[result.user.role]}. Please select the correct account type.`
                 );
                 return;
             }
@@ -73,7 +72,7 @@ export default function Login() {
                         </p>
                     </div>
 
-                    <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-[#F1F3EF] p-1.5">
+                    <div className="mb-6 grid grid-cols-3 gap-2 rounded-xl bg-[#F1F3EF] p-1.5">
                         <button
                             type="button"
                             onClick={() => {
@@ -102,6 +101,21 @@ export default function Login() {
                         >
                             <Building2 size={18} />
                             NGO
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setRole("ADMIN");
+                                setError("");
+                            }}
+                            className={`flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition ${role === "ADMIN"
+                                ? "bg-[#123B32] text-white shadow-sm"
+                                : "text-[#68736D] hover:text-[#123B32]"
+                                }`}
+                        >
+                            <ShieldCheck size={18} />
+                            Admin
                         </button>
                     </div>
 
